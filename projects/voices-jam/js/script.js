@@ -9,8 +9,11 @@ author, and this description to match your project!
 "use strict";
 
 const speechSynthesizer = new p5.Speech();
+const speechRecognizer = new p5.SpeechRec();
 let showSubtitle = false;
 let toSay = `Simon says`;
+let backgroundColor = `blue`;
+
 /**
 Description of preload
 */
@@ -36,6 +39,11 @@ function setup() {
     speechSynthesizer.onEnd = () => {
         showSubtitle = false;
     };
+
+    speechRecognizer.onResult = handleSpeechInput;
+    speechRecognizer.continuous = true;
+    speechRecognizer.interimResults = true;
+    speechRecognizer.start();
 }
 
 
@@ -43,7 +51,7 @@ function setup() {
 Description of draw()
 */
 function draw() {
-    background(227, 127, 111);
+    background(backgroundColor);
 
     if (showSubtitle) {
         textSize(36);
@@ -62,4 +70,8 @@ function speechStarted() {
 
 function speechEnded() {
     showSubtitle = false;
+}
+
+function handleSpeechInput() {
+    backgroundColor = speechRecognizer.resultString;
 }
