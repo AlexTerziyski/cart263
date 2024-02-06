@@ -122,10 +122,47 @@ function mousePressed() {
 function handleSpeechInput() {
     if (speechRecognizer.resultValue) {
         let spokenWord = speechRecognizer.resultString.toLowerCase().split(/\s+/).pop(); // Gets the last word recognized
+        enlargeCircle(spokenWord); // Enlarges the circle corresponding to the spoken color
     }
 }
 
+/**
+ * enlargeCircle(color)
+ * Temporarily enlarges a circle corresponding to a spoken color to provide visual feedback.
+ * Also advances the game sequence if the spoken color matches the expected next color.
+ */
+function enlargeCircle(color) {
+    // Find the circle that matches the spoken color
+    let circle = circles.find(c => c.color === color);
+    if (circle) {
+        circle.size = circle.defaultSize * 1.5; // Enlarge the circle by 50%
+        setTimeout(() => {
+            circle.size = circle.defaultSize; // Reset the circle size after a short delay
+        }, 1000); // Delay before the circle shrinks back to its original size
+    }
 
+    // Check if the spoken color matches the next expected color in the sequence
+    if (color === colorSequence[currentColorIndex]) {
+        currentColorIndex++; // Move to the next color in the sequence
+
+        if (currentColorIndex < colorSequence.length) {
+            // Prepares the next color to announce
+            expectedSequence.push(colorSequence[currentColorIndex]);
+            setTimeout(() => {
+                let nextColorToSay = expectedSequence.join(", ");
+                speechSynthesizer.speak(`Simon says ${nextColorToSay}`);
+            }, 1500); // Wait a bit before announcing the next color
+        } else {
+            // Reset the game or end it once the sequence is complete
+            speechSynthesizer.speak("Congratulations, you've completed the sequence!");
+            // Reset game state for replay or further action
+
+            //(Functionality limited)
+            currentColorIndex = 0; // Reset the game to start 
+            expectedSequence = [colorSequence[currentColorIndex]]; // Reset expected sequence
+        }
+    }
+}
 
 
 
