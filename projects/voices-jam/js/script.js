@@ -12,14 +12,11 @@ const speechSynthesizer = new p5.Speech();
 const speechRecognizer = new p5.SpeechRec();
 let showSubtitle = false;
 let toSay = `Simon says`;
-let backgroundColor = `blue`;
-
-/**
-Description of preload
-*/
-function preload() {
-
-}
+let backgroundColor = `black`;
+// Defines the set sequence of colors.
+let colorSequence = ["green", "red", "red", "green", "yellow", "blue", "blue", "blue", "red", "yellow"];
+// Marker for current position in color sequence
+let currentColorIndex = 0;
 
 
 /**
@@ -38,12 +35,14 @@ function setup() {
     };
     speechSynthesizer.onEnd = () => {
         showSubtitle = false;
+        speechRecognizer.start(); // Keeps the recognizer running.
     };
 
     speechRecognizer.onResult = handleSpeechInput;
     speechRecognizer.continuous = true;
     speechRecognizer.interimResults = true;
     speechRecognizer.start();
+
 }
 
 
@@ -62,6 +61,13 @@ function draw() {
 function mousePressed() {
     // Say something
     speechSynthesizer.speak(toSay);
+
+    // Updates to say the next color in the sequence.
+    if (currentColorIndex < colorSequence.length) {
+        let colorToSay = colorSequence[currentColorIndex];
+        toSay = `Simon says ${colorToSay}`;
+        speechSynthesizer.speak(toSay);
+    }
 }
 
 function speechStarted() {
