@@ -1,3 +1,6 @@
-# Template p5 project
+# Voices Jam: Simon Says
+Alex Terziyski
 
-This is the README file for the entire project. For more official projects you should write information here about the nature of the project, your name, any special explanations of how the project works, etc.
+When you're ready, click on the screen to start. A British man named Simon (Simon says) will prompt you with colors.
+You must repeat them in the correct order to move on in the sequence. The circles enlarge as visual indicators to what you said.
+Recommended to use headphones when entering the program.
