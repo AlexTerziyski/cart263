@@ -121,7 +121,54 @@ function randomGesture() {
     return gestures[index];
 }
 
+/**
+ * Compares the player's gesture against the computer's to determine the round's winner.
+ * Implements the classic rules of Rock, Paper, Scissors to evaluate the outcome.
+ */
+function determineWinner(player, computer) {
+    if (player === computer) {
+        return `Draw! Both chose ${player}`;
+    } else if ((player === "Rock" && computer === "Scissors") ||
+        (player === "Scissors" && computer === "Paper") ||
+        (player === "Paper" && computer === "Rock")) {
+        return `You win! ${player} beats ${computer}`;
+    } else {
+        return `You lose! ${computer} beats ${player}`;
+    }
+}
 
+/**
+ * Analyzes the current hand pose to determine the gesture being made by the player.
+ * Checks the extension of each finger to classify the gesture as Rock, Paper, or Scissors.
+ */
+function determineGesture() {
+    if (predictions.length > 0) {
+        let hand = predictions[0];
+        let fingers = ['thumb', 'indexFinger', 'middleFinger', 'ringFinger', 'pinky'];
+        let extendedFingers = fingers.map(finger => {
+            let tipY = hand.annotations[finger][3][1];
+            let baseY = hand.annotations[finger][0][1];
+            // Check if the finger is extended by comparing tip to base Y position
+            return tipY < baseY - someThreshold;
+        });
+
+        let extendedCount = extendedFingers.filter(isExtended => isExtended).length;
+        if (extendedCount === 0) {
+            return "Rock";
+        } else if (extendedCount === 5) {
+            return "Paper";
+        } else {
+            let indexExtended = extendedFingers[1]; // Index finger extended
+            let middleExtended = extendedFingers[2]; // Middle finger extended
+            let otherFingersNotExtended = !extendedFingers[0] && !extendedFingers[3] && !extendedFingers[4]; // Other fingers not extended
+
+            if (indexExtended && middleExtended && otherFingersNotExtended) {
+                return "Scissors";
+            }
+        }
+    }
+    return "UNKNOWN";
+}
 
 
 
