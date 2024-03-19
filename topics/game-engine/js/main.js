@@ -1,5 +1,5 @@
 "use strict";
-
+// Default setup config in main.js for Phaser
 let config = {
     type: Phaser.AUTO,
     width: 1500,
