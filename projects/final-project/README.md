@@ -1,4 +1,5 @@
 # Final-Project
 Alex Terziyski
 
-This is the README file for the entire project. For more official projects you should write information here about the nature of the project, your name, any special explanations of how the project works, etc.
+This project utilizes the p5.js library and Mediapipe Hands model to interact with hand gestures captured via webcam. 
+It synthesizes speech based on hand movements, mapping hand position to pitch and utilizing different voices.
