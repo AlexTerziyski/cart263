@@ -35,6 +35,8 @@ hands.setOptions({
 });
 
 // Callback function for hands detection results
+hands.onResults(onResults);
+
 function onResults(results) {
     handResults = results;
 }
@@ -58,7 +60,7 @@ let handResults = undefined;
 let webcam = undefined;
 
 function setup() {
-    createCanvas(640, 360); // Create canvas for drawing
+    createCanvas(640, 360);  // Create canvas for drawing
     webcam = select(`#webcam`); // Select webcam video element
 }
 
@@ -84,7 +86,6 @@ function displayHands(results) {
 
             speechSynthesizer.speak('oooooooooooooooooo'); // Speak synthesized speech
 
-            // Display hand landmarks
             for (let j = 0; j < landmarks.length; j++) {
                 let x = landmarks[j].x * width;
                 let y = landmarks[j].y * height;
