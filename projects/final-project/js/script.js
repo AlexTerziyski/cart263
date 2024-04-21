@@ -3,7 +3,13 @@
  * Alexander Terziyski
  * 
  * This project utilizes the p5.js library and Mediapipe Hands model to interact with hand gestures captured via webcam. 
- * It synthesizes speech based on hand movements, mapping hand position to pitch and utilizing different voices.
+ * It synthesizes speech based on hand movements, mapping hand position to pitch and utilizing different voices. 
+ * Users can input a word by typing in the provided input field and pressing enter. The word will be repeated continuously 
+ * until the user enters a new word. Users can explore different synthesizer and text effects by moving their hands in 
+ * various positions relative to the detected landmarks. Different effects, such as high pitch, low pitch, faster pronunciation, 
+ * and slower pronunciation, are activated by hovering the index finger over corresponding ellipses on the screen. Additionally, 
+ * hovering the index finger over the "Language Randomizer" ellipse changes the voice synthesizer randomly, providing an 
+ * interactive experience for users to experiment with speech synthesis using hand gestures.
  */
 
 "use strict";
@@ -36,6 +42,9 @@ let leftIndexY = 0;
 
 // Initialize variable to store whether the word should be repeated
 let repeatWord = false;
+
+// Initialize variable to store language ellipse position
+let voiceEllipseX, voiceEllipseY;
 
 // Get reference to video element
 const videoElement = document.getElementById(`webcam`);
@@ -101,8 +110,14 @@ function setup() {
     inputField.size(200, 20);
     inputField.attribute('placeholder', 'Type your word');
     inputField.changed(startRepeating); // Call startRepeating when enter is pressed
+
+    // Define position of the new ellipse
+    voiceEllipseX = width / 2;
+    voiceEllipseY = height - 50;
+
 }
 
+// Function to draw the ellipses on the screen and repeat words spoken
 function draw() {
     background(0); // Set background color
     image(webcam, 0, 0, width, height); // Display webcam feed
@@ -141,6 +156,14 @@ function draw() {
     textAlign(CENTER, TOP); // Text alignment
     text("Slower Pronunciation", ellipse4X, ellipse4Y - 40); // Text above ellipse
 
+    // Display randomizer ellipse
+    fill(255, 255, 0); // Yellow color
+    ellipse(voiceEllipseX, voiceEllipseY, 40, 40);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(12);
+    text("Language Randomizer", voiceEllipseX, voiceEllipseY + 30);
+
     repeatTypedWord(); // Call function to repeatedly speak the typed word
 }
 
@@ -173,46 +196,124 @@ function checkLeftIndexFingerPosition(x, y) {
     }
 }
 
-// Update displayHands function to include checking left index finger position
+// Update displayHands function to include checking left and right index finger positions
 function displayHands(results) {
     if (!results) return;
+
+    // Separate left and right hand processing
+    let leftHandFound = false;
+    let rightHandFound = false;
 
     if (results.multiHandLandmarks) {
         for (let i = 0; i < results.multiHandLandmarks.length; i++) {
             let landmarks = results.multiHandLandmarks[i];
-            let handY = landmarks[0].y * height;
 
-            let pitch = mapHandToPitch(handY); // Map hand position to pitch
+            // Determine hand side (left or right)
+            let handSide = landmarks[0].x * width < width / 2 ? 'left' : 'right';
 
-            speechSynthesizer.setPitch(pitch); // Set synthesizer pitch
-            speechSynthesizer.setVoice(voices[i]); // Set synthesizer voice
+            // Process left hand
+            if (handSide === 'left') {
+                leftHandFound = true;
 
-            // Call function to check left index finger position
-            checkLeftIndexFingerPosition(landmarks[8].x * width, landmarks[8].y * height);
+                // Display landmarks and word effects only for the left hand
+                let handY = landmarks[0].y * height;
 
-            // Display typed word with effects based on its position
-            let style = getWordStyle(landmarks[8].x * width, landmarks[8].y * height);
-            displayStyledWord(inputWord, leftIndexX, leftIndexY, style);
+                let pitch = mapHandToPitch(handY); // Map hand position to pitch
 
-            for (let j = 0; j < landmarks.length; j++) {
-                let x = landmarks[j].x * width;
-                let y = landmarks[j].y * height;
-                fill(random(255)); // Random color for each landmark
-                noStroke();
-                ellipse(x, y, 20); // Draw landmark as ellipse
+                speechSynthesizer.setPitch(pitch); // Set synthesizer pitch
+                speechSynthesizer.setVoice(voices[i]); // Set synthesizer voice
 
-                // Store the position of the right index finger
-                if (j === 8 && i === 1) {
-                    rightIndexX = x;
-                    rightIndexY = y;
+                // Get the position of the tip of the index finger
+                let indexTipX = landmarks[8].x * width;
+                let indexTipY = landmarks[8].y * height;
+
+                // Determine if the tip of the index finger is within the bounding box of each ellipse
+                let leftIndexWithinEllipse1 = dist(indexTipX, indexTipY, ellipse1X, ellipse1Y) < 30;
+                let leftIndexWithinEllipse2 = dist(indexTipX, indexTipY, ellipse2X, ellipse2Y) < 30;
+                let leftIndexWithinEllipse3 = dist(indexTipX, indexTipY, ellipse3X, ellipse3Y) < 30;
+                let leftIndexWithinEllipse4 = dist(indexTipX, indexTipY, ellipse4X, ellipse4Y) < 30;
+                let voiceEllipseWithin = dist(indexTipX, indexTipY, voiceEllipseX, voiceEllipseY) < 20;
+
+                // Set fill color based on left index finger tip position
+                if (leftIndexWithinEllipse1 || leftIndexWithinEllipse2 || leftIndexWithinEllipse3 || leftIndexWithinEllipse4 || voiceEllipseWithin) {
+                    fill(0, 255, 0); // Green if within ellipses or language randomizer
+                } else {
+                    fill(255, 0, 0); // Red otherwise
                 }
 
-                // Store the position of the left index finger
-                if (j === 8 && i === 0) {
-                    leftIndexX = x;
-                    leftIndexY = y;
+                // Draw landmarks for the left hand
+                for (let j = 0; j < landmarks.length; j++) {
+                    let x = landmarks[j].x * width;
+                    let y = landmarks[j].y * height;
+
+                    noStroke();
+                    ellipse(x, y, 20); // Draw landmark as ellipse
+
+                    // Store the position of the left index finger
+                    if (j === 8) {
+                        leftIndexX = x;
+                        leftIndexY = y;
+                    }
+
+                    // Randomize voice if finger is hovering over voice ellipse
+                    if (voiceEllipseWithin) {
+                        let randomVoiceIndex = floor(random(voices.length));
+                        speechSynthesizer.setVoice(voices[randomVoiceIndex]);
+                    }
+                }
+
+                // Display the typed word with effects based on its position
+                let style = getWordStyle(leftIndexX, leftIndexY);
+                displayStyledWord(inputWord, leftIndexX, leftIndexY, style);
+            }
+
+            // Process right hand
+            if (handSide === 'right') {
+                rightHandFound = true;
+
+                // Display fingertip color changes only for the right hand
+                for (let j = 0; j < landmarks.length; j++) {
+                    let x = landmarks[j].x * width;
+                    let y = landmarks[j].y * height;
+
+                    // Determine if the point is within the bounding box of each ellipse
+                    let rightIndexWithinEllipse1 = dist(x, y, ellipse1X, ellipse1Y) < 30;
+                    let rightIndexWithinEllipse2 = dist(x, y, ellipse2X, ellipse2Y) < 30;
+                    let rightIndexWithinEllipse3 = dist(x, y, ellipse3X, ellipse3Y) < 30;
+                    let rightIndexWithinEllipse4 = dist(x, y, ellipse4X, ellipse4Y) < 30;
+                    let voiceEllipseWithin = dist(x, y, voiceEllipseX, voiceEllipseY) < 20;
+
+                    // Set fill color based on right index finger position
+                    if (j === 8) { // Right index finger
+                        if (rightIndexWithinEllipse1 || rightIndexWithinEllipse2 || rightIndexWithinEllipse3 || rightIndexWithinEllipse4 || voiceEllipseWithin) {
+                            fill(0, 255, 0); // Green if within ellipses or language randomizer
+                        } else {
+                            fill(255, 0, 0); // Red otherwise
+                        }
+                    }
+
+                    noStroke();
+                    ellipse(x, y, 20); // Draw landmark as ellipse
+
+                    // Randomize voice if finger is hovering over voice ellipse
+                    if (voiceEllipseWithin) {
+                        let randomVoiceIndex = floor(random(voices.length));
+                        speechSynthesizer.setVoice(voices[randomVoiceIndex]);
+                    }
                 }
             }
+        }
+
+        // Reset text effects if left hand is not found
+        if (!leftHandFound) {
+            let style = getWordStyle(leftIndexX, leftIndexY); // Get default style
+            displayStyledWord(inputWord, leftIndexX, leftIndexY, style); // Display word with default style
+        }
+
+        // Reset synthesizer parameters if right hand is not found
+        if (!rightHandFound) {
+            speechSynthesizer.setPitch(1); // Reset pitch
+            speechSynthesizer.setRate(1); // Reset rate
         }
     }
 }
@@ -276,7 +377,7 @@ function displayStyledWord(word, x, y, style) {
     pop();
 }
 
-// Function to speak the typed word repeatedly
+// Function to speak the typed word repeatedly (Currently using repeatTypedWord();)
 function startRepeating() {
     inputWord = inputField.value(); // Get the typed word
     repeatWord = true; // Set repeatWord to true
@@ -291,6 +392,38 @@ function repeatTypedWord() {
 }
 
 
-
 // Array to store synthesizer voices
-let voices = ['Google UK English Female', 'Google UK English Male'];
+let voices = [
+    'Google UK English Female', 'Google UK English Male',
+    'Samantha', 'Aaron', 'Albert', 'Alice', 'Alva', 'Amélie', 'Amira', 'Anna', 'Arthur', 'Bad News',
+    'Bahh', 'Bells', 'Boing', 'Bubbles', 'Carmit', 'Catherine', 'Cellos', 'Damayanti',
+    'Daniel (English (United Kingdom))', 'Daniel (French (France))', 'Daria', 'Eddy (German (Germany))',
+    'Eddy (English (United Kingdom))', 'Eddy (English (United States))', 'Eddy (Spanish (Spain))',
+    'Eddy (Spanish (Mexico))', 'Eddy (Finnish (Finland))', 'Eddy (French (Canada))', 'Eddy (French (France))',
+    'Eddy (Italian (Italy))', 'Eddy (Portuguese (Brazil))', 'Ellen', 'Flo (German (Germany))',
+    'Flo (English (United Kingdom))', 'Flo (English (United States))', 'Flo (Spanish (Spain))',
+    'Flo (Spanish (Mexico))', 'Flo (Finnish (Finland))', 'Flo (French (Canada))', 'Flo (French (France))',
+    'Flo (Italian (Italy))', 'Flo (Portuguese (Brazil))', 'Fred', 'Good News', 'Gordon',
+    'Grandma (German (Germany))', 'Grandma (English (United Kingdom))', 'Grandma (English (United States))',
+    'Grandma (Spanish (Spain))', 'Grandma (Spanish (Mexico))', 'Grandma (Finnish (Finland))',
+    'Grandma (French (Canada))', 'Grandma (French (France))', 'Grandma (Italian (Italy))', 'Grandma (Portuguese (Brazil))',
+    'Grandpa (German (Germany))', 'Grandpa (English (United Kingdom))', 'Grandpa (English (United States))',
+    'Grandpa (Spanish (Spain))', 'Grandpa (Spanish (Mexico))', 'Grandpa (Finnish (Finland))', 'Grandpa (French (Canada))',
+    'Grandpa (French (France))', 'Grandpa (Italian (Italy))', 'Grandpa (Portuguese (Brazil))', 'Hattori',
+    'Helena', 'Ioana', 'Jacques', 'Jester', 'Joana', 'Junior', 'Kanya', 'Karen', 'Kathy',
+    'Kyoko', 'Lana', 'Laura', 'Lekha', 'Lesya', 'Li-Mu', 'Linh', 'Luciana', 'Majed', 'Marie',
+    'Martha', 'Martin', 'Meijia', 'Melina', 'Milena', 'Moira', 'Montse', 'Mónica', 'Nicky', 'Nora',
+    'O-Ren', 'Organ', 'Paulina', 'Ralph', 'Reed (German (Germany))', 'Reed (English (United Kingdom))',
+    'Reed (English (United States))', 'Reed (Spanish (Spain))', 'Reed (Spanish (Mexico))', 'Reed (Finnish (Finland))',
+    'Reed (French (Canada))', 'Reed (Italian (Italy))', 'Reed (Portuguese (Brazil))', 'Rishi', 'Rocko (German (Germany))',
+    'Rocko (English (United Kingdom))', 'Rocko (English (United States))', 'Rocko (Spanish (Spain))', 'Rocko (Spanish (Mexico))',
+    'Rocko (Finnish (Finland))', 'Rocko (French (Canada))', 'Rocko (French (France))', 'Rocko (Italian (Italy))', 'Rocko (Portuguese (Brazil))',
+    'Sandy (German (Germany))', 'Sandy (English (United Kingdom))', 'Sandy (English (United States))', 'Sandy (Spanish (Spain))',
+    'Sandy (Spanish (Mexico))', 'Sandy (Finnish (Finland))', 'Sandy (French (Canada))', 'Sandy (French (France))', 'Sandy (Italian (Italy))',
+    'Sandy (Portuguese (Brazil))', 'Sara', 'Satu', 'Shelley (German (Germany))', 'Shelley (English (United Kingdom))',
+    'Shelley (English (United States))', 'Shelley (Spanish (Spain))', 'Shelley (Spanish (Mexico))', 'Shelley (Finnish (Finland))',
+    'Shelley (French (Canada))', 'Shelley (French (France))', 'Shelley (Italian (Italy))', 'Shelley (Portuguese (Brazil))', 'Sin-ji',
+    'Tarik', 'Tessa', 'Thomas', 'Ting-Ting', 'Tom', 'Tracy', 'Vanessa', 'Vicki', 'Victoria', 'Victoria (French (Canada))',
+    'Victoria (French (France))', 'Victoria (Italian (Italy))', 'Victoria (Portuguese (Brazil))', 'Vincent', 'Xander', 'Yelda',
+    'Yuna', 'Yuri', 'Zosia', 'Aditi', 'Raveena', 'Ivy', 'Joey', 'Justin', 'Kendra', 'Kimberly', 'Matthew', 'Nicole', 'Russell', 'Amy', 'Brian', 'Emma', 'Joanna', 'Salli', 'Conchita', 'Enrique', 'Miguel', 'Penélope', 'Chantal', 'Céline', 'Mathieu', 'D'
+];
